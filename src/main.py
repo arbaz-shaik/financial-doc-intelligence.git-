@@ -21,21 +21,37 @@ async def say_hello(name: str):
 
 @app.get("/companies")
 async def get_companies():
-    return {"companies": ["Company A", "Company B", "Company C"]}
+    results = store.list_all()
+    return {"results": results, "count": len(results)}
 
 @app.post("/companies", response_model=CompanyResponse)
 async def new_company(company: Company):
     store.add(company.ticker, company)
     return CompanyResponse(company=company, added_at="2024-06-01T12:00:00Z")
 
-@app.get("/companies/{ticker}")
-async def get_company(ticker:str):
-    company  = store.get(ticker)
-    if not company:
-        raise HTTPException(status_code=404, detail="Company not found")
-    return company
+
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request, exc):
     logger.error(f"An error occurred: {str(exc)}")
     return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
+@app.get("/companies/search/")
+async def search_companies(sector:str = None, name:str = None):
+    if sector:
+        results= store.search_by_sector(sector)
+    elif name:
+        results= store.search_by_name(name)   
+    else:
+        results= []
+    return {"results": results, "count" :len(results)}
+
+@app.get("/companies/{ticker}")
+async def get_company(ticker:str):
+    company = store.get(ticker)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return company
+
+        
+    
