@@ -5,5 +5,4 @@ test:
 	pytest tests/ -v	
 
 pine:
-	python pipeline/sec_client.py
-	
+	python -m pipeline.sec_client

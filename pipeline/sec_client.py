@@ -34,7 +34,7 @@ if __name__ == "__main__":
     client = SECClient(settings.sec_user_agent)
     results = client.search("0000320193")
     filing = results[0]
-    url = f"https://www.sec.gov/Archives/edgar/data/320193/{filing['accessionNumber'].replace('-','')}/{filing['primaryDocument']}"
+    url = f"https://www.sec.gov/Archives/edgar/data/320193/{filing['accessionNumber'].replace('-', '')}/{filing['primaryDocument']}"
     print(url)
     output_dir = Path("data/raw")
     output_dir.mkdir(parents=True, exist_ok=True)

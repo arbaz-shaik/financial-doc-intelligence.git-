@@ -2,3 +2,4 @@
 __pycahche__/
 .pytest_cache/
 .venv/
+data/raw/
