@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from fastapi import FastAPI, HTTPException
 from src.models import CompanyResponse , Company
 from src.storage import CompanyStore
@@ -27,7 +29,7 @@ async def get_companies():
 @app.post("/companies", response_model=CompanyResponse)
 async def new_company(company: Company):
     store.add(company.ticker, company)
-    return CompanyResponse(company=company, added_at="2024-06-01T12:00:00Z")
+    return CompanyResponse(company=company, added_at=datetime.now(UTC).isoformat())
 
 
 

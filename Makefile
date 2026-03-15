@@ -3,3 +3,7 @@ run:
 
 test:
 	pytest tests/ -v	
+
+pine:
+	python pipeline/sec_client.py
+	
