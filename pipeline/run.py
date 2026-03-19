@@ -1,0 +1,62 @@
+from pipeline.sec_client import SECClient
+from pipeline.news_client import NewsClient
+from pipeline.chunker import Chunker
+from pipeline.store import ChunkStore
+from pipeline.parser import DocumentParser
+from src.config import settings
+from pathlib import Path
+import datetime
+
+def run_pipeline(companies: list[str]):
+    CIK_MAP = {
+    "AAPL": "0000320193",
+    "MSFT": "0000789019",
+    "JPM": "0000019617",
+    "GOOGL": "0001652044",}
+
+
+    sec_client = SECClient(settings.sec_user_agent)
+    parser = DocumentParser()
+    news_client = NewsClient(settings.news_api_key)
+    chunker = Chunker(chunk_size=512, chunk_overlap=50)
+    chunk_store = ChunkStore("data/chunks")
+    
+    for company in companies:
+        print(f"Processing SEC filing for {company}...")
+        cik = CIK_MAP.get(company)
+        if not cik:
+            print(f"CIK not found for company: {company}")
+            continue
+        sec_client_results = sec_client.search(CIK=cik)
+        sec_client_filing = sec_client_results[0]
+        metadata = {
+        "source": "sec",
+        "company": company,
+        "doc_type": "10-K",
+        "date": sec_client_filing['reportDate'],
+        "section": None
+        }
+        url = f"https://www.sec.gov/Archives/edgar/data/{cik.lstrip('0')}/{sec_client_filing['accessionNumber'].replace('-', '')}/{sec_client_filing['primaryDocument']}"
+        sec_client_html = sec_client.download(url)
+        sec_client_text = parser.parse_html(sec_client_html)
+        chunks = chunker.chunk_text(sec_client_text, metadata=metadata)
+        chunk_store.save_chunks(chunks,filename = f"{company}-10K-{sec_client_filing['reportDate']}")
+
+        
+        news_client_results = news_client.fetch_news(company, days_back=10)
+        for article in news_client_results:
+            metadata = {
+                "source": "news",
+                "company": company,
+                "doc_type": "news",
+                "date": article["date"],
+                "section": None
+            }
+            chunks = chunker.chunk_text(article["text"], metadata=metadata)
+            chunk_store.save_chunks(chunks, filename=f"{company}-news-{article['date']}")
+        print(f"Processing {len(news_client_results)} news articles for {company}...")
+
+if __name__ == "__main__":
+    run_pipeline(["AAPL"])
+    store = ChunkStore("data/chunks")
+    print(store.stats())

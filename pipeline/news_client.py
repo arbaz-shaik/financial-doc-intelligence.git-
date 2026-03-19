@@ -20,7 +20,7 @@ class NewsClient:
         )
         results = []
         data = response.json()
-        print(data)
+      
         for article in response.json()["articles"]:
             results.append({
                 "title": article["title"],
