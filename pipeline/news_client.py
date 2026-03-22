@@ -1,36 +1,47 @@
 from datetime import datetime, timedelta
 import httpx
 from pipeline.chunker import Chunker
-
+import json
+from src.logger import get_logger
+logger = get_logger(__name__)
 
 class NewsClient:
     def __init__(self, api_key: str):
         self.api_key = api_key
 
     def fetch_news(self, query: str, days_back: int = 30) -> list[dict]:
-        date = datetime.today() - timedelta(days=days_back)
-        response = httpx.get(
-            "https://newsapi.org/v2/everything",
-            params={
-                "q": query,
-                "from": date.strftime("%Y-%m-%d"),
-                "sortBy": "popularity",
-                "apiKey": self.api_key,
-            },
-        )
-        results = []
-        data = response.json()
+        try:
+            date = datetime.today() - timedelta(days=days_back)
+            response = httpx.get(
+                "https://newsapi.org/v2/everything",
+                params={
+                    "q": query,
+                    "from": date.strftime("%Y-%m-%d"),
+                    "sortBy": "popularity",
+                    "apiKey": self.api_key,
+                },
+            )
+            results = []
+            data = response.json()
+
+            for article in data["articles"]:
+                results.append({
+                    "title": article["title"],
+                    "description": article["description"],
+                    "url": article["url"],
+                    "date": article["publishedAt"][:10],
+                    "text": article["content"] or article["description"],
+                    "company": query,
+                })
+            return results
+        
+        except httpx.HTTPError as e:
+            logger.error(f"HTTPX CONNECT Error{e}")
+            return []
+        except json.JSONDecodeError as e:
+               logger.error(f"Json encoder error:{e}" )
+               return []
       
-        for article in response.json()["articles"]:
-            results.append({
-                "title": article["title"],
-                "description": article["description"],
-                "url": article["url"],
-                "date": article["publishedAt"][:10],
-                "text": article["content"] or article["description"],
-                "company": query,
-            })
-        return results
 
 
 if __name__ == "__main__":
