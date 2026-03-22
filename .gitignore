@@ -3,3 +3,21 @@ __pycahche__/
 .pytest_cache/
 .venv/
 data/raw/
+
+
+git rebase 
+
+git checkout -b master
+git add .
+git commit -m "tset" 
+git push origin master
+git checkout -b develop
+git add .
+git commit -m "tset" 
+git push origin develop
+git stash 
+
+git checkout develop
+git checkout arbaz
+git rebase origin/develop
+
