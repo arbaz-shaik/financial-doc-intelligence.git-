@@ -5,7 +5,6 @@ from pipeline.chunker import Chunk
 from src.logger import get_logger
 logger = get_logger(__name__)
 
-
 class ChunkStore:
     def __init__(self, directory: str,):
         self.directory = Path(directory)
@@ -18,11 +17,11 @@ class ChunkStore:
                     chunk_dict = asdict(chunk)
                     f.write(json.dumps(chunk_dict) +"\n")
             return len(chunks)
-        except logger.PermissionError  as e:
-            print(f" permission denied {e}")
+        except PermissionError  as e:
+            logger.error(f" permission denied {e}")
             return -1
-        except logger.OSError as e:
-            print(f"wrong path {e}" )
+        except OSError as e:
+            logger.error(f"wrong path {e}" )
             return -1
 
    
@@ -34,11 +33,12 @@ class ChunkStore:
                     for line in f:
                         chunk_list.append(json.loads(line))
             return chunk_list
-        except logger.FileNotFoundError as e:
-            print(f"file not found {e}")
+        except FileNotFoundError as e:
+            logger.error(f"file not found {e}")
             return []
-        except logger.json.JSONDecodeError as e:
-            print (f"JSONDecodeError {e} ")
+        except json.JSONDecodeError as e:
+            logger.error(f"JSONDecodeError {e} ")
+            return []
         
     def stats(self) -> dict:
         chunks = self.load_all_chunks()

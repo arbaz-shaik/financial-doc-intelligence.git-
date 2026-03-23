@@ -57,7 +57,7 @@ class Test_chunk:
         chunks = chunker.chunk_text(text, metadata)
     
         for  i in range(len(chunks) - 1):
-            assert chunks[i].text[-chunk_overlap:] == chunks[i+1].text[:chunk_overlap], f"Chunk size is invalid"
+            assert chunks[i].text[-chunk_overlap:] == chunks[i+1].text[:chunk_overlap], "Chunk size is invalid"
 
     def test_empty_text(self):
         text = ""

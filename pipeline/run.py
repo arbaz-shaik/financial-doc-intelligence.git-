@@ -4,8 +4,6 @@ from pipeline.chunker import Chunker
 from pipeline.store import ChunkStore
 from pipeline.parser import DocumentParser
 from src.config import settings
-from pathlib import Path
-import datetime
 
 def run_pipeline(companies: list[str]):
     CIK_MAP = {
