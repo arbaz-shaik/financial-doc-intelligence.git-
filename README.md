@@ -89,80 +89,170 @@ pytest tests/ -v
 
 Phase 2: Data Pipeline — SEC filing ingestion, document parsing, and chunking
 
-# Data Ingestion Pipeline
+# Phase 2
 
-## What This Does
-[2-3 sentences: what data sources, what processing, what output]
+# # Data Pipeline
+
+## Overview
+
+This pipeline is used to grab data from sources using their APIs, clean the HTML, extract the text, then split them into chunks and store those chunks with metadata.
+
+## Architecture
+
+```
+Data Sources → SEC Client / News Client API → Parser → Chunker → Store
+```
+
+## Data Sources
+
+### 1. SEC EDGAR
+
+We did it in 2 steps — fetch then download.
+
+This source gives company filings by ticker or CIK number. With this API the system can pull any section from quarterly and annual reports.
+
+**Access income statements, balance sheets and cash flow statements in just three lines of Python code:**
+
+```python
+from sec_api import XbrlApi
+
+xbrlApi = XbrlApi("YOUR_API_KEY")
+xbrl_json = xbrlApi.xbrl_to_json(htm_url="sec.gov/.../aapl-20200926.htm")
+
+print(xbrl_json["StatementsOfIncome"])
+print(xbrl_json["BalanceSheets"])
+print(xbrl_json["StatementsOfCashFlows"])
+```
+
+**Implement the Download API in seconds and gain access to the entire EDGAR database:**
+
+```python
+from sec_api import RenderApi
+
+renderApi = RenderApi(api_key="YOUR_API_KEY")
+filing_content = renderApi.get_filing("sec.gov/.../tm2119986d1_8k.htm")
+print(filing_content)
+```
+
+### 2. NewsAPI
+
+This API gives us real-time news and headlines in JSON format.
+
+```python
+date = datetime.today() - timedelta(days=days_back)
+response = httpx.get(
+    "https://newsapi.org/v2/everything",
+    params={
+        "q": query,
+        "from": date.strftime("%Y-%m-%d"),
+        "sortBy": "popularity",
+        "apiKey": self.api_key,
+    },
+)
+```
+
+## Pipeline Steps
+
+### 1. Fetching
+
+This fetches the data from real-time sources.
+
+**SEC EDGAR:**
+
+1. First we fetch their recent filings, accession number, and primary documents.
+2. Then using this formatted URL it downloads the data:
+
+```python
+url = f"https://www.sec.gov/Archives/edgar/data/320193/{filing['accessionNumber'].replace('-', '')}/{filing['primaryDocument']}"
+print(url)
+output_dir = Path("data/raw")
+```
+
+### 2. Parsing & Cleaning
+
+We pass the fetched data to the parser and it uses BeautifulSoup to remove the `<script>` tags from the HTML and keep the text. This returns a string.
+
+### 3. Chunking
+
+This is the most interesting and important part of the pipeline. The main objective is to take the string and convert it into a list of objects (chunks) with metadata.
+
+1. First we create a dataclass for a chunk with its metadata.
+2. Then a Chunker class which takes chunk size and overlap as parameters.
+3. The Chunker class takes the metadata and string, splits the text with the given chunk size and overlap, then appends each chunk to a list and returns the list of chunks.
+
+### 4. Storing the Chunks
+
+It has 2 methods — save chunks and load chunks. This gets interesting here because we can't convert the list directly to a JSON object.
+
+- **`save_chunks()`** — Takes a list of chunks and a filename. Converts each chunk to a dict using `asdict()` and writes it to a file using `json.dumps()`.
+- **`load_chunks()`** — Loads JSON objects from the file, converts each object using `json.loads(line)`, appends them to a list, and returns the list.
+- **`stats()`** — Returns a dict of stats:
+
+```python
+{
+    "total_chunks": len(chunks),
+    "by_source": by_source,
+    "by_company": by_company
+}
+```
+
+And finally a `run.py` which connects the pipeline.
 
 ## How to Run
 
-### Setup
-[how to install dependencies, set up .env]
+```bash
+# Full ingestion
+make ingest
 
-### Run the Pipeline
-[exact command to run it]
+# Specific source only
+python -m pipeline.run --mode sec --companies AAPL
 
-### Run Tests
-[exact command]
-
-## Example Output
-[paste your stats here — total chunks, by source, by company]
-
-## Project Structure
-pipeline/
-├── sec_client.py    — [one line description]
-├── news_client.py   — [one line description]
-├── parser.py        — [one line description]
-├── chunker.py       — [one line description]
-├── store.py         — [one line description]
-└── run.py           — [one line description]
-
-## What I Learned
-# Block 2.7 — Error Handling & Logging
-
-## What Was Added
-
-Added try/except error handling and structured JSON logging across all pipeline components.
-
-## Files Modified
-
-| File | Changes |
-|------|---------|
-| `pipeline/sec_client.py` | try/except for network errors, JSON decode errors. Logger replaces print statements. |
-| `pipeline/news_client.py` | try/except for HTTP errors, JSON decode errors. Logger added. |
-| `pipeline/parser.py` | try/except for malformed HTML. Logger added. |
-| `pipeline/store.py` | try/except for file permissions, missing files, corrupted JSONL. Logger added. |
-
-## Error Handling Strategy
-
-Each method catches specific exceptions and returns a safe default so the pipeline doesn't crash:
-
-| Exception | Where | Safe Default |
-|-----------|-------|-------------|
-| `httpx.ConnectError` | SEC/News clients | `[]` or `""` |
-| `httpx.HTTPError` | SEC/News clients | `[]` or `""` |
-| `json.JSONDecodeError` | SEC/News clients, ChunkStore | `[]` |
-| `PermissionError` | ChunkStore | `-1` |
-| `OSError` | ChunkStore | `-1` |
-| `FileNotFoundError` | ChunkStore | `[]` |
-
-## Logging
-
-All pipeline files use the structured JSON logger from Phase 1:
-
-```python
-from src.logger import get_logger
-logger = get_logger(__name__)
-
-logger.info("Starting fetch for AAPL")
-logger.error(f"HTTP error: {e}")
+# Multiple companies
+python -m pipeline.run --mode sec --companies AAPL,MSFT
 ```
 
-## Tests
-
-All 11 tests pass after changes:
+**Example output:**
 
 ```
-pytest tests/ -v
-====================== 11 passed, 1 warning ======================
+Processing SEC filing for AAPL...
+Processing 72 news articles for AAPL...
+{'total_chunks': 2225, 'by_source': {'sec': 1928, 'news': 297}, 'by_company': {'AAPL': 2225}}
 ```
+
+```bash
+# View stats
+python -m pipeline.run --stats
+```
+
+```
+Processing SEC filing for AAPL...
+Processing 72 news articles for AAPL...
+{'total_chunks': 1671, 'by_source': {'sec': 1446, 'news': 225}, 'by_company': {'AAPL': 1671}}
+```
+
+## Configuration
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `CHUNK_SIZE` | 512 | Characters per chunk |
+| `CHUNK_OVERLAP` | 50 | Overlap between chunks |
+| `NEWS_API_KEY` | — | Required for news fetching |
+
+## Error Handling
+
+| Failure Type | How It's Handled |
+| --- | --- |
+| API timeout (SEC / NewsAPI) | Retries up to 3 times with exponential backoff, then skips |
+| HTTP errors (4xx / 5xx) | Logs the status code and skips the document |
+| Corrupt HTML / PDF | Logs a `ParseError`, skips the file, continues |
+| Empty or too-short text | Skipped at chunking stage (minimum length threshold) |
+| Missing metadata fields | Defaults applied where safe; logged as warning |
+
+## what i learned:
+    this phase taught me alot and took mode of my time :
+    I learned how to fecth and clean the data from the servers using api key. 
+    learned how parse the data using beautiful soup.
+    learned how to chunk and the data and store them.
+    most impoertant how to build this data pipline 
+    
+    and my concepts related to chunking beautifulsoup and class became alot clearer. 
