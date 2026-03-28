@@ -3,6 +3,7 @@ from pipeline.news_client import NewsClient
 from pipeline.chunker import Chunker
 from pipeline.store import ChunkStore
 from pipeline.parser import DocumentParser
+from src import logger
 from src.config import settings
 
 def run_pipeline(companies: list[str]):
@@ -20,12 +21,15 @@ def run_pipeline(companies: list[str]):
     chunk_store = ChunkStore("data/chunks")
     
     for company in companies:
-        print(f"Processing SEC filing for {company}...")
+        logger.info(f"Processing SEC filing for {company}...")
         cik = CIK_MAP.get(company)
         if not cik:
-            print(f"CIK not found for company: {company}")
+            logger.error(f"CIK not found for company: {company}")
             continue
         sec_client_results = sec_client.search(CIK=cik)
+        if not sec_client_results:
+            logger.warning(f"No SEC filings found for {company}")
+            continue
         sec_client_filing = sec_client_results[0]
         metadata = {
         "source": "sec",
@@ -52,7 +56,8 @@ def run_pipeline(companies: list[str]):
             }
             chunks = chunker.chunk_text(article["text"], metadata=metadata)
             chunk_store.save_chunks(chunks, filename=f"{company}-news-{article['date']}")
-        print(f"Processing {len(news_client_results)} news articles for {company}...")
+        logger.info(f"Processing {len(news_client_results)} news articles for {company}...")
+    logger.info("Pipeline completed.")
 
 if __name__ == "__main__":
     run_pipeline(["AAPL"])

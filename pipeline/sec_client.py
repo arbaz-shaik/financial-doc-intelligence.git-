@@ -27,7 +27,7 @@ class SECClient:
                     })
             return results 
         except httpx.HTTPError as e:
-            print(f"HTTP error occurred: {e}")
+            logger.error(f"HTTP error occurred: {e}")
             return []
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error occurred: {e}")
@@ -38,7 +38,7 @@ class SECClient:
             response = httpx.get(url, headers=self.headers, timeout=30)
             return response.text
         except httpx.ConnectError as e:
-            print(f"httpx.ConnectError error occurred: {e}")
+            logger.error(f"httpx.ConnectError error occurred: {e}")
             return ""
 
         except httpx.HTTPError as e:
