@@ -6,7 +6,6 @@ class Embedder:
     def embed(self,text:str) -> list[float]:
       return self.model.encode(text).tolist()
         
-
-
+        
     def embed_batch(self,text:list[str])-> list[list[float]]:
         return self.model.encode(text).tolist()
