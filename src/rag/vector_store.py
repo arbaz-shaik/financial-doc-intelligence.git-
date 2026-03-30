@@ -65,5 +65,7 @@ class VectorStore:
 
         return output
             
+    def count(self) -> int:
+        return self.collection.count()
 
 
