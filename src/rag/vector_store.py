@@ -41,11 +41,21 @@ class VectorStore:
 
         where_clause = {}
 
+        conditions = []
+
         if source_filter:
-            where_clause["source"] = source_filter
+            conditions.append({"source": source_filter})
 
         if company_filter:
-            where_clause["company"] = company_filter
+            conditions.append({"company": company_filter})
+
+        # Build where_clause based on count
+        if len(conditions) == 0:
+            where_clause = None
+        elif len(conditions) == 1:
+            where_clause = conditions[0]
+        else:
+            where_clause = {"$and": conditions}
 
         results = self.collection.query(
             query_embeddings=[query_embedding],
@@ -54,6 +64,7 @@ class VectorStore:
         )
 
         output = []
+
 
         for i in range(len(results["ids"][0])):
             output.append({
