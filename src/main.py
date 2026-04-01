@@ -6,11 +6,25 @@ from src.storage import CompanyStore
 from src.config import settings
 from src.logger import get_logger
 from fastapi.responses import JSONResponse
+from src.rag.embedder import Embedder
+from src.rag.vector_store import VectorStore
+from src.rag.llm import LLM
+from src.rag.prompts import RAG_PROMPT
+from src.rag.qa import SimpleRAG
 
+
+
+embedder = Embedder()
+llm = LLM()
+vector_store = VectorStore()
 store = CompanyStore()
+rag = SimpleRAG(embedder= embedder, store= vector_store, llm= llm)
 
 app =FastAPI(title=settings. API_NAME)
 logger = get_logger(__name__)
+
+
+
 
 @app.get("/health")
 async def root():
@@ -25,6 +39,11 @@ async def say_hello(name: str):
 async def get_companies():
     results = store.list_all()
     return {"results": results, "count": len(results)}
+
+@app.post("/companies/ask/")
+async def ask(question: str, top_k: int = 4, filter: str | None = None):
+    result = rag.ask(question, top_k, filter)
+    return result
 
 @app.post("/companies", response_model=CompanyResponse)
 async def new_company(company: Company):
@@ -47,6 +66,8 @@ async def search_companies(sector:str = None, name:str = None):
     else:
         results= []
     return {"results": results, "count" :len(results)}
+
+
 
 @app.get("/companies/{ticker}")
 async def get_company(ticker:str):
