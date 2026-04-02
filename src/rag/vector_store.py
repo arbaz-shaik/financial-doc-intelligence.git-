@@ -50,9 +50,6 @@ class VectorStore:
         if company_filter:
             conditions.append({"company": company_filter})
 
-        if date_from:
-            conditions.append({"date": {"$gte": date_from}})
-
         # Build where_clause based on count
         if len(conditions) == 0:
             where_clause = None
@@ -77,6 +74,11 @@ class VectorStore:
                 "metadata": results["metadatas"][0][i],
                 "distance": results["distances"][0][i]
             })
+
+        
+        if date_from:
+            output = [r for r in output if r["metadata"]["date"] >= date_from]
+
 
         return output
             

@@ -15,14 +15,18 @@ class SimpleRAG:
         self.reranker = Reranker(llm =self.llm)
         
 
-    def ask(self, question: str , top_k : int = 4, filter : str|None = None):
+    def ask(self, question: str , top_k : int = 4, filter : str|None = None, date_from: str | None = None):
 
         self.logger.info(f"Received question : {question}")
         try:
             system_prompt = "You are a precise financial analyst. Only use provided context."
 
             question_embedding = self.embedder.embed(question)
-            results = self.store.search(question_embedding, top_k, filter)
+            results = self.store.search(
+            query_embedding=question_embedding,
+            top_k=top_k,
+            source_filter=filter,
+            date_from=date_from)
             if not results:
                 self.logger.warning("No chunks retrieved for question")
                 return {

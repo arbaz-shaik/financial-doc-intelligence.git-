@@ -13,12 +13,15 @@ class QuestionRequest(BaseModel) :
     question : str
     top_k : int = 5
     source_filter : str | None = None
+    date_from: str | None = None
+    
 
 class SourceInfo(BaseModel):
     chunk_id : str
     text : str 
     metadata: dict
     relevance : float
+    date_from: str | None = None
 
 class AnswerResponse(BaseModel):
     question: str

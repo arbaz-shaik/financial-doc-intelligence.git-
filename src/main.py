@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from fastapi import FastAPI, HTTPException
-from src.models import CompanyResponse , Company
+from src.models import CompanyResponse , Company, QuestionRequest
 from src.storage import CompanyStore
 from src.config import settings
 from src.logger import get_logger
@@ -41,8 +41,13 @@ async def get_companies():
     return {"results": results, "count": len(results)}
 
 @app.post("/companies/ask/")
-async def ask(question: str, top_k: int = 4, filter: str | None = None):
-    result = rag.ask(question, top_k, filter)
+async def ask(request: QuestionRequest):
+    result = rag.ask(
+        question=request.question,
+        top_k=request.top_k,
+        filter=request.source_filter,
+        date_from=request.date_from
+    )
     return result
 
 @app.post("/companies", response_model=CompanyResponse)
