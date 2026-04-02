@@ -36,7 +36,8 @@ class VectorStore:
         query_embedding: list[float],
         top_k: int | None = 5,
         source_filter: str | None = None,
-        company_filter: str | None = None
+        company_filter: str | None = None,
+        date_from: str | None = None
     ) -> list[dict]:
 
         where_clause = {}
@@ -48,6 +49,9 @@ class VectorStore:
 
         if company_filter:
             conditions.append({"company": company_filter})
+
+        if date_from:
+            conditions.append({"date": {"$gte": date_from}})
 
         # Build where_clause based on count
         if len(conditions) == 0:

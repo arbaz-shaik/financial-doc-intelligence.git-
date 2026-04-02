@@ -1,8 +1,10 @@
 from src.rag.embedder import Embedder
 from src.rag.vector_store import VectorStore
 from src.rag.llm import LLM
-from src.rag.prompts import RAG_PROMPT
+from src.rag.prompts import RAG_PROMPT, RAG_TEST_PROMPT_V2, RAG_TEST_PROMPT_V3
 from src.logger import get_logger
+from src.rag.reranker import Reranker
+
 
 class SimpleRAG:
     def __init__(self, embedder : Embedder, store: VectorStore, llm: LLM):
@@ -10,9 +12,11 @@ class SimpleRAG:
         self.store = store
         self.llm = llm
         self.logger = get_logger(__name__)
+        self.reranker = Reranker(llm =self.llm)
         
 
     def ask(self, question: str , top_k : int = 4, filter : str|None = None):
+
         self.logger.info(f"Received question : {question}")
         try:
             system_prompt = "You are a precise financial analyst. Only use provided context."
@@ -26,9 +30,12 @@ class SimpleRAG:
                     "answer": "No relevant documents found for your question.",
                     "sources": []
                 }
+            
+            
+            rerank_chunk = self.reranker.rerank(question=question, chunks= results, top_k= top_k )
 
             context = "\n".join(
-                f"[{r['id']}] {r['text']}" for r in results
+                f"[{r['id']}] {r['text']}" for r in rerank_chunk
             )
 
 
@@ -37,7 +44,7 @@ class SimpleRAG:
         "question": question,
         "answer": self.llm.generate(
     system_prompt=system_prompt,
-    user_prompt=RAG_PROMPT.format(context=context, question=question)
+    user_prompt=RAG_TEST_PROMPT_V3.format(context=context, question=question)
 ),
         "sources": [
             {
@@ -46,7 +53,7 @@ class SimpleRAG:
                 "metadata": r["metadata"],
                 "relevance": 1 - r["distance"]
             }
-            for r in results
+            for r in rerank_chunk
         ]
     }
     
