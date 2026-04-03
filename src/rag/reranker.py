@@ -6,6 +6,28 @@ class Reranker:
        
 
     def rerank(self, question: str, chunks: list[dict], top_k: int = 5) -> list[dict]:
+
+        if not chunks:
+            return []
+
+        chunk_list = "/n/n".join(
+                f"[{i}], {c["text"][:300]}" for i, c in enumerate(chunks)
+            )
+        
+        prompt = f"""Question, {question}
+        Chunk = {chunk_list}
+
+Rank these chunks by relevance to the question.
+Return ONLY a comma-separated list of chunk numbers, most relevant first.
+Example output: 3,1,0,4,2"
+
+
+"""
+
+     
+
+
+            
        
 
         scored_chunks =[]
