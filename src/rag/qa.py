@@ -1,7 +1,7 @@
 from src.rag.embedder import Embedder
 from src.rag.vector_store import VectorStore
 from src.rag.llm import LLM
-from src.rag.prompts import RAG_PROMPT, RAG_TEST_PROMPT_V2, RAG_TEST_PROMPT_V3
+from src.rag.prompts import RAG_TEST_PROMPT_V3
 from src.logger import get_logger
 from src.rag.reranker import Reranker
 
@@ -61,6 +61,6 @@ class SimpleRAG:
         ]
     }
     
-        except Exception as e :
+        except Exception:
             self.logger.error("Error in RAG pipeline", exc_info=True)
             raise

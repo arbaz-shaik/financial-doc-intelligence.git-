@@ -9,7 +9,6 @@ from fastapi.responses import JSONResponse
 from src.rag.embedder import Embedder
 from src.rag.vector_store import VectorStore
 from src.rag.llm import LLM
-from src.rag.prompts import RAG_PROMPT
 from src.rag.qa import SimpleRAG
 
 

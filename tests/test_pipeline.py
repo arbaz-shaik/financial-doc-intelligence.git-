@@ -30,9 +30,7 @@ class Test_chunk:
             "date": "2025-09-27",
             "section": None
         }
-        
-        chunk_size=521
-        chunk_overlap=50
+    
         chunker = Chunker(chunk_size=521, chunk_overlap=50)
         chunks = chunker.chunk_text(text, metadata)
         for chunk in chunks:

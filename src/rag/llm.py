@@ -2,7 +2,6 @@ from groq import Groq
 from dotenv import load_dotenv
 import os
 load_dotenv()
-from src.logger import get_logger
 
 class LLM:
     def __init__(self, model : str = "llama-3.3-70b-versatile"):

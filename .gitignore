@@ -4,5 +4,6 @@ __pycahche__/
 .venv/
 data/raw/
 data/vectors
+src/rag/vestor_store/
 
 
