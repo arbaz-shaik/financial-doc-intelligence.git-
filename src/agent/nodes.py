@@ -53,11 +53,17 @@ Rules:
 
 
 def retrieve(state: AgentState) -> dict:
+    
+    #logic for source filter
+
+    source_filter = None if state["route"] == "general" else state["route"]
+
+
     #call the embed and to embed the questions
     embed_question = embedder.embed(state['question'])
 
     #call the store.search to search the relavent chunks
-    retrieved_chunks = store.search(query_embedding= embed_question,top_k=state['top_k'],source_filter=state['source_filter'], date_from=state['date_from'])
+    retrieved_chunks = store.search(query_embedding= embed_question,top_k=state['top_k'],source_filter=source_filter, date_from=state['date_from'])
 
     #create a ranked chunks function get all reranked chunks
     ranked_chunks = reranker.rerank(question=state['question'], chunks=retrieved_chunks,top_k=state['top_k'])
@@ -83,21 +89,68 @@ def retrieve(state: AgentState) -> dict:
         "context": context,
         "sources": sources
     }
-
 def generate_node(state: AgentState):
-   
-    
-    answer= llm.generate( system_prompt =  "You are a precise financial analyst. Only use provided context.",user_prompt=RAG_TEST_PROMPT_V3.format(context=state['context'], question=state['question'])
-   )
 
-    return{
-        "answer":answer
-    }
+    # 1. Build history_text first
+    history_text = "\n\n".join(
+        f"User: {chat['question']}\nAssistant: {chat['answer']}"
+        for chat in state.get("chat_history", [])
+    )
+
+    # 2. Build formatted prompt (FIX: pass history_text directly)
+    formatted_prompt = RAG_TEST_PROMPT_V3.format(
+        context=state["context"],
+        question=state["question"],
+        chat_history=history_text
+    )
+
+    # 3. Call LLM
+    answer = llm.generate(
+        system_prompt="""
+You are a precise financial analyst.
+Only use the provided context and relevant chat history.
+Maintain consistency with previous response.
+""",
+        user_prompt=formatted_prompt
+    )
+
+    # 4. Update chat history (FIX: correct .get key)
+    updated_chat_history = state.get("chat_history", []) + [
+        {
+            "question": state["question"],
+            "answer": answer
+        }
+    ]
+
+    # 5. Return
+    return {
+        "answer": answer,
+        "chat_history": updated_chat_history
+    } 
+   
 
 def  risk_flagger_node(state: AgentState):
+
+    flags = [
+    "litigation",
+    "material weakness",
+    "regulatory investigation",
+    "material adverse effect",
+    "data breach",
+    "sanctions",
+    "fraud",
+    "going concern",
+    "default",
+    "bankruptcy",
+    "restatement",
+    "compliance failure"
+]
+    texts = state["answer"].lower()
+
+    result = [word for word in flags if word in texts]
+   
     return{
-        "risk_flags": []
-    }
+        "risk_flags":result}
 
 
 

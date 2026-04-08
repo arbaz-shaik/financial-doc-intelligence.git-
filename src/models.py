@@ -14,6 +14,7 @@ class QuestionRequest(BaseModel) :
     top_k : int = 5
     source_filter : str | None = None
     date_from: str | None = None
+    chat_history: list = []
     
 
 class SourceInfo(BaseModel):
@@ -27,6 +28,8 @@ class AnswerResponse(BaseModel):
     question: str
     answer : str
     sources : list[SourceInfo]
+    risk_flags : list[str] 
+    route : str
 
 
 

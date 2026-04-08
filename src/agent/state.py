@@ -13,5 +13,6 @@ class AgentState(TypedDict):
     retrieved_chunks: list[dict] 
     source_filter:NotRequired[str | None]
     date_from:NotRequired[str | None]
+    chat_history: list[dict]
 
 

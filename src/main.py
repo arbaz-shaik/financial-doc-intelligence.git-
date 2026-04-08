@@ -1,23 +1,17 @@
 from datetime import UTC, datetime
 
 from fastapi import FastAPI, HTTPException
-from src.models import CompanyResponse , Company, QuestionRequest
+from src.models import CompanyResponse , Company, QuestionRequest, AnswerResponse
 from src.storage import CompanyStore
 from src.config import settings
 from src.logger import get_logger
 from fastapi.responses import JSONResponse
-from src.rag.embedder import Embedder
-from src.rag.vector_store import VectorStore
-from src.rag.llm import LLM
-from src.rag.qa import SimpleRAG
+from src.agent.graph import app as build_agent
 
 
 
-embedder = Embedder()
-llm = LLM()
-vector_store = VectorStore()
 store = CompanyStore()
-rag = SimpleRAG(embedder= embedder, store= vector_store, llm= llm)
+
 
 app =FastAPI(title=settings. API_NAME)
 logger = get_logger(__name__)
@@ -41,13 +35,24 @@ async def get_companies():
 
 @app.post("/companies/ask/")
 async def ask(request: QuestionRequest):
-    result = rag.ask(
-        question=request.question,
-        top_k=request.top_k,
-        filter=request.source_filter,
-        date_from=request.date_from
+
+    result = build_agent.invoke(
+        input={
+            "question": request.question,
+            "chat_history": request.chat_history or [],
+            "top_k": request.top_k,
+            "source_filter": request.source_filter,
+            "date_from": request.date_from,
+        }
     )
-    return result
+
+    return AnswerResponse(
+        question=request.question,
+        answer=result.get("answer", ""),
+        sources=result.get("sources", []),
+        risk_flags=result.get("risk_flags") or [],
+        route=result.get("route", "default"),
+    )
 
 @app.post("/companies", response_model=CompanyResponse)
 async def new_company(company: Company):
