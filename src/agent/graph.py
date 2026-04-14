@@ -17,9 +17,6 @@ workflow.add_conditional_edges("router", route_decision,{
 
 } )
 
-
-
-
 workflow.add_node("retrieve" ,nodes.retrieve) 
 workflow.add_node("generate_node", nodes.generate_node)
 workflow.add_node("risk_flagger_node", nodes.risk_flagger_node)
@@ -36,6 +33,4 @@ initial_state ={
     "top_k": 4,
     "source_filter": None,
     "date_from": None
-    
 }
-
